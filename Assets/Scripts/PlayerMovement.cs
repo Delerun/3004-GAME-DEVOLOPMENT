@@ -1,7 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.InputSystem; // Yeni Input System kütüphanesi
+using UnityEngine.InputSystem; 
 using UnityEngine.SceneManagement;
 using TMPro;
 
@@ -32,6 +32,7 @@ public class Movement : MonoBehaviour
     // Components
     private Rigidbody2D rb;
     private SpriteRenderer spriteRenderer;
+    private Animator animator; // YENİ: Animatör bileşeni
     
     // State Variables
     private bool isGrounded;
@@ -41,18 +42,16 @@ public class Movement : MonoBehaviour
 
     // Input System
     private PlayerControls inputActions;
-    private Vector2 moveInput;
 
     private void Awake()
     {
-        // Generated Class'ı başlatıyoruz
         inputActions = new PlayerControls();
 
         rb = GetComponent<Rigidbody2D>();
         spriteRenderer = GetComponent<SpriteRenderer>();
+        animator = GetComponent<Animator>(); // YENİ: Bileşeni alıyoruz
         wallJumpTimer = 0f;
 
-        // Null Check'ler
         if (groundCheckPoint == null) Debug.LogError("Ground Check Point atanmamış!");
         if (wallCheckPoint == null) Debug.LogError("Wall Check Point atanmamış!");
 
@@ -63,24 +62,19 @@ public class Movement : MonoBehaviour
     private void OnEnable()
     {
         inputActions.Player.Enable();
-
-        // Eventlere abone oluyoruz (Tuşa basıldığı an çalışır)
         inputActions.Player.Jump.performed += OnJumpPerformed;
         inputActions.Player.Restart.performed += OnRestartPerformed;
     }
 
     private void OnDisable()
     {
-        // Event aboneliklerini kaldırıyoruz
         inputActions.Player.Jump.performed -= OnJumpPerformed;
         inputActions.Player.Restart.performed -= OnRestartPerformed;
-
         inputActions.Player.Disable();
     }
 
     void Update()
     {
-        // Düşme kontrolü (Update içinde kalabilir)
         if (transform.position.y < fallLimitY)
         {
             RestartGameInstant();
@@ -89,93 +83,77 @@ public class Movement : MonoBehaviour
 
     void FixedUpdate()
     {
-        // Fiziksel kontrolleri FixedUpdate'te yapmak daha sağlıklıdır
         isGrounded = Physics2D.OverlapCircle(groundCheckPoint.position, 0.2f, groundLayer);
 
-        // Duvar kontrolü
         if (wallCheckPoint != null)
         {
             isTouchingWall = Physics2D.OverlapCircle(wallCheckPoint.position, 0.2f, wallLayer);
             if (isTouchingWall)
             {
-                // Duvarın ne tarafta olduğunu bul
                 wallDirection = (wallCheckPoint.position.x > transform.position.x) ? 1 : -1;
             }
         }
 
-        // Timer mantığı
         if (wallJumpTimer > 0)
         {
             wallJumpTimer -= Time.deltaTime;
         }
 
-        // Hareket Girdisini Oku (ReadValue)
-        // inputActions dosyasında Move action'ını Vector2 ayarladığını varsayıyoruz
+        // --- HAREKET ---
         float horizontalInput = inputActions.Player.Move.ReadValue<Vector2>().x;
 
-        // Wall Jump sırasında kontrolü kısıtla
         if (wallJumpTimer > 0)
         {
             horizontalInput = 0f;
         }
 
-        // Hareketi Uygula
-        // Not: Unity 6 öncesi için 'rb.velocity', Unity 6 için 'rb.linearVelocity'
-        Vector2 targetVelocity = new Vector2(horizontalInput * moveSpeed, rb.linearVelocity.y);
-        rb.linearVelocity = targetVelocity;
+        rb.linearVelocity = new Vector2(horizontalInput * moveSpeed, rb.linearVelocity.y);
 
-        // Sprite Çevirme
+        // --- YENİ: ANIMASYON KODU ---
+        // Hızımızı (pozitif olarak) Animator'daki "Speed" parametresine gönderiyoruz
+        if (animator != null)
+        {
+            animator.SetFloat("Speed", Mathf.Abs(horizontalInput));
+        }
+
+        // Karakteri çevir
         if (spriteRenderer != null && horizontalInput != 0)
         {
             spriteRenderer.flipX = horizontalInput < 0;
         }
     }
 
-    // Zıplama inputu geldiğinde çalışacak fonksiyon
     private void OnJumpPerformed(InputAction.CallbackContext context)
     {
-        // 1. Normal Zıplama
+        // Debug.Log("Jump Tuşuna Basıldı! -- Yerde mi: " + isGrounded); 
+
         if (isGrounded)
         {
             rb.AddForce(new Vector2(0f, jumpForce), ForceMode2D.Impulse);
         }
-        // 2. Duvar Zıplaması (Wall Jump)
         else if (isTouchingWall && !isGrounded && wallJumpTimer <= 0)
         {
             wallJumpTimer = wallJumpCooldown;
-            
-            // Hızı sıfırla ki daha net bir zıplama olsun
             rb.linearVelocity = new Vector2(rb.linearVelocity.x, 0f);
-
             Vector2 jumpVector = new Vector2(-wallDirection * wallJumpForceX, wallJumpForceY);
             rb.AddForce(jumpVector, ForceMode2D.Impulse);
         }
     }
 
-    // Restart inputu geldiğinde çalışacak fonksiyon
     private void OnRestartPerformed(InputAction.CallbackContext context)
     {
         RestartGameInstant();
     }
 
-    // --- Çarpışma ve Oyun Durumu Fonksiyonları (Değişmedi) ---
-
+    // --- Diğer Fonksiyonlar (Aynı) ---
     private void OnCollisionEnter2D(Collision2D collision)
     {
-        // Bit shifting yerine LayerMask helper fonksiyonlarını kullanmak daha okunaklı olabilir
-        // ama senin mevcut mantığını koruyorum:
-        if (((1 << collision.gameObject.layer) & hunterLayer) != 0)
-        {
-            GameOver();
-        }
+        if (((1 << collision.gameObject.layer) & hunterLayer) != 0) GameOver();
     }
 
     private void OnTriggerEnter2D(Collider2D other)
     {
-        if (((1 << other.gameObject.layer) & goalLayer) != 0)
-        {
-            GameWin();
-        }
+        if (((1 << other.gameObject.layer) & goalLayer) != 0) GameWin();
     }
 
     void GameOver()
