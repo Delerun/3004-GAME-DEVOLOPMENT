@@ -309,7 +309,15 @@ TextureImporter:
     secondaryTextures: []
     spriteCustomMetadata:
       entries: []
-    nameFileIdTable: {}
+    nameFileIdTable:
+      2d_scary_monster_202512272001-removebg-preview_0: 1093511403130168631
+      2d_scary_monster_202512272001-removebg-preview_1: 8138418878170712783
+      2d_scary_monster_202512272001-removebg-preview_2: -7294420089356247976
+      2d_scary_monster_202512272001-removebg-preview_3: 6920714415572186193
+      2d_scary_monster_202512272001-removebg-preview_4: 8257982482406264466
+      2d_scary_monster_202512272001-removebg-preview_5: -7691404191838972520
+      2d_scary_monster_202512272001-removebg-preview_6: 3619517934158110630
+      2d_scary_monster_202512272001-removebg-preview_7: 4265814763540491559
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

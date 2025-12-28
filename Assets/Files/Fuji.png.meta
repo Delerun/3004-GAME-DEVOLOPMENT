@@ -134,7 +134,8 @@ TextureImporter:
     secondaryTextures: []
     spriteCustomMetadata:
       entries: []
-    nameFileIdTable: {}
+    nameFileIdTable:
+      Fuji_0: 3351111284303926355
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 
